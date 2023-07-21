@@ -43,7 +43,7 @@ export default class TilesetService {
                 properties,
                 geometry: {
                     type: coorData['type'] === 'MultiPolygon' ? 'Polygon' : coorData['type'],
-                    coordinates: coorData['coordinates']
+                    coordinates: coorData['coordinates'][0]
                 }
             })
         }
