@@ -10,11 +10,11 @@ export default class TilesetsController {
         response.status(200).send(await this.tilesetService.get())
     }
 
-    public async find({ response, params }: HttpContextContract){
-        response.status(200).send(await this.tilesetService.find(params.tileset_id))
+    public async find({ request, response, params }: HttpContextContract){
+        response.status(200).send(await this.tilesetService.find(params.tileset_id, request.qs().show_geometry))
     }
 
-    public async findByLongLat({ response, params }: HttpContextContract){
-        response.status(200).send(await this.tilesetService.getMatchedLongLat(params.lng, params.lat))
+    public async findByLongLat({ request, response, params }: HttpContextContract){
+        response.status(200).send(await this.tilesetService.getMatchedLongLat(params.lng, params.lat, request.qs().show_geometry))
     }
 }

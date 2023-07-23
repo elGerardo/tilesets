@@ -9,7 +9,7 @@ export default class TilesetService {
         return { data: tilesets }
     }
 
-    public async find(tileset_id: string) {
+    public async find(tileset_id: string, show_geometry: "true" | "false") {
         let data = {};
 
         const tileset = await Tileset.query()
@@ -34,26 +34,32 @@ export default class TilesetService {
                 properties = { ...properties, [name]: value }
             }
 
-            const geomData = await Database.rawQuery('select type, ST_AsGeojson(geom) from geometries where feature_id = ?', [featureRow.id])
+            let geomData: any = [] 
+            if(show_geometry === "true") geomData = await Database.rawQuery('select type, ST_AsGeojson(geom) from geometries where feature_id = ?', [featureRow.id])
 
-            const coorData = JSON.parse(geomData.rows[0]['st_asgeojson'])
+            let coorData: any = []
+            if (show_geometry === "true") coorData = JSON.parse(geomData.rows[0]['st_asgeojson'])
 
             data['tileset']['features'].push({
                 type: featureRow.type,
                 properties,
-                geometry: {
-                    type: coorData['type'] === 'MultiPolygon' ? 'Polygon' : coorData['type'],
-                    coordinates: coorData['coordinates'][0]
-                }
+                ...(show_geometry === "true" && {
+                    geometry: {
+                        type: coorData['type'] === 'MultiPolygon' ? 'Polygon' : coorData['type'],
+                        coordinates: coorData['coordinates'][0]
+                    }
+                })
             })
         }
 
         return { ...data['tileset'] }
     }
 
-    public async getMatchedLongLat(lng: string, lat: string) {
-        const geomData = await Database.rawQuery(`Select tileset_id, feature_id, type, ST_AsGeojson(geom) from geometries where ST_Within(ST_PointFromText('POINT(${parseFloat(lng)} ${parseFloat(lat)})'), geom)`, [])
-
+    public async getMatchedLongLat(lng: string, lat: string, show_geometry: "true" | "false") {
+        let geomData: any = []
+        if(show_geometry === "true") geomData = await Database.rawQuery(`Select tileset_id, feature_id, type, ST_AsGeojson(geom) from geometries where ST_Within(ST_PointFromText('POINT(${parseFloat(lng)} ${parseFloat(lat)})'), geom)`, [])
+        else geomData = await Database.rawQuery(`Select tileset_id, feature_id, type from geometries where ST_Within(ST_PointFromText('POINT(${parseFloat(lng)} ${parseFloat(lat)})'), geom)`, [])
+        
         let response: any = []
         for (const geom of geomData.rows) {
 
@@ -64,7 +70,6 @@ export default class TilesetService {
                 .firstOrFail()
 
             data['tileset'] = tileset.serialize()
-            console.log(geom.feature_id)
             const featureRow = await Feature.query()
                 .where('id', geom.feature_id)
                 .firstOrFail()
@@ -79,15 +84,18 @@ export default class TilesetService {
                 properties = { ...properties, [name]: value }
             }
 
-            const coorData = JSON.parse(geom['st_asgeojson'])
+            let coorData: any = [];
+            if (show_geometry === "true") coorData = JSON.parse(geom['st_asgeojson'])
 
             data['tileset']['features'] = [{
                 type: featureRow.type,
                 properties,
-                geometry: {
-                    type: geom.type === 'MultiPolygon' ? 'Polygon' : geom['type'],
-                    coordinates: coorData['coordinates'][0]
-                }
+                ...(show_geometry === "true" && {
+                    geometry: {
+                        type: geom.type === 'MultiPolygon' ? 'Polygon' : geom['type'],
+                        coordinates: coorData['coordinates'][0]
+                    }
+                })
             }]
 
             response.push({ ...data['tileset'] })
