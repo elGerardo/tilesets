@@ -20,6 +20,11 @@
 
 import Route from '@ioc:Adonis/Core/Route'
 
-Route.get('tilesets', 'TilesetsController.index')
-Route.get('tilesets/:tileset_id', 'TilesetsController.find')
-Route.get('tilesets/lng/:lng/lat/:lat', 'TilesetsController.findByLongLat')
+Route.group(() => {
+
+    Route.get('/', 'TilesetsController.index')
+    Route.get(':tileset_id', 'TilesetsController.find')
+    Route.get('lng/:lng/lat/:lat', 'TilesetsController.findByLongLat')
+    Route.get(':tileset_id/lng/:lng/lat/:lat', 'TilesetsController.findPointOrLine')
+    
+}).prefix('tilesets')

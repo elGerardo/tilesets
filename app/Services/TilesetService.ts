@@ -6,10 +6,10 @@ import Tileset from 'App/Models/Tileset'
 export default class TilesetService {
     public async get(filters: any) {
         const tilesets = await Tileset.query()
-        .withScopes((scopes) => scopes.filter(filters))
-        .preload('geometry', geometry => {
-            geometry.select('type')
-        })
+            .withScopes((scopes) => scopes.filter(filters))
+            .preload('geometry', geometry => {
+                geometry.select('type')
+            })
         return { data: tilesets }
     }
 
@@ -38,8 +38,8 @@ export default class TilesetService {
                 properties = { ...properties, [name]: value }
             }
 
-            let geomData: any = [] 
-            if(show_geometry === "true") geomData = await Database.rawQuery('select type, ST_AsGeojson(geom) from geometries where feature_id = ?', [featureRow.id])
+            let geomData: any = []
+            if (show_geometry === "true") geomData = await Database.rawQuery('select type, ST_AsGeojson(geom) from geometries where feature_id = ?', [featureRow.id])
 
             let coorData: any = []
             if (show_geometry === "true") coorData = JSON.parse(geomData.rows[0]['st_asgeojson'])
@@ -61,9 +61,9 @@ export default class TilesetService {
 
     public async getMatchedLongLat(lng: string, lat: string, show_geometry: "true" | "false") {
         let geomData: any = []
-        if(show_geometry === "true") geomData = await Database.rawQuery(`Select tileset_id, feature_id, type, ST_AsGeojson(geom) from geometries where ST_Within(ST_PointFromText('POINT(${parseFloat(lng)} ${parseFloat(lat)})'), geom)`, [])
+        if (show_geometry === "true") geomData = await Database.rawQuery(`Select tileset_id, feature_id, type, ST_AsGeojson(geom) from geometries where ST_Within(ST_PointFromText('POINT(${parseFloat(lng)} ${parseFloat(lat)})'), geom)`, [])
         else geomData = await Database.rawQuery(`Select tileset_id, feature_id, type from geometries where ST_Within(ST_PointFromText('POINT(${parseFloat(lng)} ${parseFloat(lat)})'), geom)`, [])
-        
+
         let response: any = []
         for (const geom of geomData.rows) {
 
@@ -108,5 +108,45 @@ export default class TilesetService {
 
         return response
 
+    }
+
+    public async getPointOrLine(tileset_id: string, lng: string, lat: string, radius: string) {
+        let data = {};
+        const tileset = await Tileset.query()
+        .where('id', tileset_id)
+        .firstOrFail()
+
+        data['tileset'] = tileset.serialize()
+        data['tileset']['features'] = []
+
+        const geomData = await Database.rawQuery(`SELECT id, tileset_id, feature_id, ST_AsGeojson(geom), type FROM geometries WHERE ST_DWithin(geom, ST_MakePoint(${parseFloat(lng)}, ${parseFloat(lat)})::geography, ${parseInt(radius)}, false) AND tileset_id = '${tileset_id}'`)
+        for (const geom of geomData.rows) {
+
+            const featureRow = await Feature.query()
+                .where('id', geom.feature_id)
+                .preload('properties')
+                .firstOrFail()
+
+            let properties = {}
+            for (const propertyRow of featureRow.properties) {
+                const name: 'name' | any = propertyRow?.name
+                const value = propertyRow?.value
+                properties = { ...properties, [name]: value }
+            }
+
+            const coorData = JSON.parse(geom['st_asgeojson'])
+
+            data['tileset']['features'].push({
+                type: featureRow.type,
+                properties,
+                geometry: {
+                    type: geom['type'],
+                    coordinates: coorData['coordinates']
+                }
+            })
+
+        }
+
+        return data['tileset']
     }
 }

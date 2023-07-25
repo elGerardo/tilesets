@@ -19,4 +19,10 @@ export default class TilesetsController {
     public async findByLongLat({ request, response, params }: HttpContextContract){
         response.status(200).send(await this.tilesetService.getMatchedLongLat(params.lng, params.lat, request.qs().show_geometry))
     }
+
+    public async findPointOrLine({ request, response, params }: HttpContextContract){
+        let radius = "5000"
+        if(request.qs().radius !== undefined) radius = request.qs().radius
+        response.status(200).send(await this.tilesetService.getPointOrLine(params.tileset_id, params.lng, params.lat, radius))
+    }
 }
