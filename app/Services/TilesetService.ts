@@ -4,8 +4,12 @@ import Field from 'App/Models/Field';
 import Tileset from 'App/Models/Tileset'
 
 export default class TilesetService {
-    public async get() {
-        const tilesets = await Tileset.all()
+    public async get(filters: any) {
+        const tilesets = await Tileset.query()
+        .withScopes((scopes) => scopes.filter(filters))
+        .preload('geometry', geometry => {
+            geometry.select('type')
+        })
         return { data: tilesets }
     }
 

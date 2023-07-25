@@ -11,6 +11,9 @@ export default class Geometry extends BaseModel {
   public feature_id: string
 
   @column()
+  public tileset_id: string
+
+  @column()
   public type: string
 
   @column()

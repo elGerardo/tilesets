@@ -1,13 +1,15 @@
 import { inject } from '@adonisjs/core/build/standalone';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import ListDTO from 'App/DTOs/Shared/ListDTO';
 import TilesetService from 'App/Services/TilesetService';
 
 @inject()
 export default class TilesetsController {
     constructor(readonly tilesetService: TilesetService){}
     
-    public async index({ response }: HttpContextContract){
-        response.status(200).send(await this.tilesetService.get())
+    public async index({ request, response }: HttpContextContract){
+        const filters = await ListDTO.handle(request.qs())
+        response.status(200).send(await this.tilesetService.get(filters))
     }
 
     public async find({ request, response, params }: HttpContextContract){
