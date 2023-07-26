@@ -110,43 +110,48 @@ export default class TilesetService {
 
     }
 
-    public async getPointOrLine(tileset_id: string, lng: string, lat: string, radius: string) {
-        let data = {};
-        const tileset = await Tileset.query()
-        .where('id', tileset_id)
-        .firstOrFail()
-
-        data['tileset'] = tileset.serialize()
-        data['tileset']['features'] = []
-
+    public async findPointOrLine(tileset_id: string, lng: string, lat: string, radius: string) {
         const geomData = await Database.rawQuery(`SELECT id, tileset_id, feature_id, ST_AsGeojson(geom), type FROM geometries WHERE ST_DWithin(geom, ST_MakePoint(${parseFloat(lng)}, ${parseFloat(lat)})::geography, ${parseInt(radius)}, false) AND tileset_id = '${tileset_id}'`)
-        for (const geom of geomData.rows) {
-
-            const featureRow = await Feature.query()
-                .where('id', geom.feature_id)
-                .preload('properties')
+        if (geomData.rows.length !== 0) {
+            let data = {};
+            const tileset = await Tileset.query()
+                .where('id', tileset_id)
                 .firstOrFail()
 
-            let properties = {}
-            for (const propertyRow of featureRow.properties) {
-                const name: 'name' | any = propertyRow?.name
-                const value = propertyRow?.value
-                properties = { ...properties, [name]: value }
+            data['tileset'] = tileset.serialize()
+            data['tileset']['features'] = []
+
+            for (const geom of geomData.rows) {
+
+                const featureRow = await Feature.query()
+                    .where('id', geom.feature_id)
+                    .preload('properties')
+                    .firstOrFail()
+
+                let properties = {}
+                for (const propertyRow of featureRow.properties) {
+                    const name: 'name' | any = propertyRow?.name
+                    const value = propertyRow?.value
+                    properties = { ...properties, [name]: value }
+                }
+
+                const coorData = JSON.parse(geom['st_asgeojson'])
+
+                data['tileset']['features'].push({
+                    type: featureRow.type,
+                    properties,
+                    geometry: {
+                        type: geom['type'],
+                        coordinates: coorData['coordinates']
+                    }
+                })
+
             }
 
-            const coorData = JSON.parse(geom['st_asgeojson'])
-
-            data['tileset']['features'].push({
-                type: featureRow.type,
-                properties,
-                geometry: {
-                    type: geom['type'],
-                    coordinates: coorData['coordinates']
-                }
-            })
-
+            return data['tileset']
         }
 
-        return data['tileset']
+        return {}
+
     }
 }
