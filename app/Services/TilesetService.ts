@@ -49,8 +49,8 @@ export default class TilesetService {
                 properties,
                 ...(show_geometry === "true" && {
                     geometry: {
-                        type: coorData['type'] === 'MultiPolygon' ? 'Polygon' : coorData['type'],
-                        coordinates: coorData['coordinates'][0]
+                        type: coorData['type'],
+                        coordinates: coorData['coordinates']
                     }
                 })
             })
@@ -96,8 +96,8 @@ export default class TilesetService {
                 properties,
                 ...(show_geometry === "true" && {
                     geometry: {
-                        type: geom.type === 'MultiPolygon' ? 'Polygon' : geom['type'],
-                        coordinates: coorData['coordinates'][0]
+                        type: geom['type'],
+                        coordinates: coorData['coordinates']
                     }
                 })
             }]
